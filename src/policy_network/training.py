@@ -95,7 +95,7 @@ def train(num_episodes=10000):
 
     print(agent.model(torch.tensor(agent.encoder(game.get_state_for_player(0)), dtype=torch.float32)))
 
-    torch.save(model.state_dict(), f"{MODEL_DIR}/poker_model_latest.pt")
+    torch.save(agent.model.state_dict(), f"{MODEL_DIR}/poker_model_latest.pt")
 
 
 if __name__ == "__main__":

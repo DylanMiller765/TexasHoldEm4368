@@ -68,9 +68,9 @@ class PokerAgent:
         torch.save(checkpoint, path)
 
     def load(self, path, optimizer=None):
-        checkpoint = torch.load(path)
+        checkpoint = torch.load(path, map_location=torch.device("cpu"))
 
-        self.model.load_state_dict(checkpoint["model_state"])
+        self.model.load_state_dict(checkpoint)
 
         if optimizer is not None and "optimizer_state" in checkpoint:
             optimizer.load_state_dict(checkpoint["optimizer_state"])
