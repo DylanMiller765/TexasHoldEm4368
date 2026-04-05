@@ -68,4 +68,9 @@ python -m src.policy_network.training
 
 # Evaluate against baseline
 python -m src.evaluation.evaluate
+
+# Runs the UI and allows the player to play against the AI
+python server.py
+
+#Open http://localhost:5000/ and play
 ```

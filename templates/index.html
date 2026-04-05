@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Texas Hold'em</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&display=swap');
+
+      *, *::before, *::after
+      {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body
+      {
+        font-family: 'IM Fell English', 'Times New Roman', serif;
+        background: #000000;
+        color: #e0e0e0;
+        min-height: 100vh;
+      }
+
+      #header
+      {
+        background: #1a4a1c;
+        border-bottom: 3px solid #000;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 20px;
+      }
+
+      #header .title
+      {
+        font-size: 24px;
+        font-weight: bold;
+        font-style: italic;
+        color: #f5e642;
+      }
+
+      #header-right
+      {
+        display: flex;
+        gap: 8px;
+      }
+
+      .tab-btn
+      {
+        font-family: inherit;
+        padding: 5px 14px;
+        border: 2px solid #99cc99;
+        background: #0f2e10;
+        color: #99cc99;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      .tab-btn.active
+      {
+        border-color: #f5e642;
+        background: #f5e642;
+        color: #000;
+        font-weight: bold;
+      }
+
+      #content
+      {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 16px 12px;
+      }
+
+      #controls
+      {
+        background: #111111;
+        border: 2px solid #999;
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .ctrl-btn
+      {
+        font-family: inherit;
+        padding: 6px 14px;
+        border: 2px solid;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      #new-btn
+      {
+        border-color: #888;
+        background: #fff;
+        color: #333;
+      }
+
+      .tab-page
+      {
+        display: none;
+      }
+
+      .tab-page.active
+      {
+        display: block;
+      }
+
+      #table
+      {
+        background: #2a5a2c url("/greenFelt.jpeg") center/cover no-repeat;
+        border: 5px solid #6b3a1f;
+        margin-bottom: 10px;
+      }
+
+      .table-section
+      {
+        padding: 12px 16px;
+        text-align: center;
+      }
+
+      .table-section.community
+      {
+        border-top: 2px dashed #4a8a4c;
+        border-bottom: 2px dashed #4a8a4c;
+      }
+
+      .player-info
+      {
+        color: #ccffcc;
+        font-size: 13px;
+        font-style: italic;
+        margin-bottom: 4px;
+      }
+
+      .player-info b
+      {
+        color: #f5e642;
+      }
+
+      .cards-row
+      {
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+        margin: 6px 0;
+      }
+
+      .card
+      {
+        width: 62px;
+        height: 88px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        flex-shrink: 0;
+        background: #ddd;
+      }
+
+      .card img
+      {
+        width: 100%;
+        height: 100%;
+        border-radius: 4px;
+        display: block;
+      }
+
+      .card.hidden
+      {
+        background: #2244aa;
+        border: 2px solid #aaa;
+        color: #fff;
+        font-size: 22px;
+      }
+
+      .card.empty
+      {
+        background: transparent;
+        border: 2px dashed #4a8a4c;
+      }
+
+      .pot-row
+      {
+        color: #f5e642;
+        font-size: 14px;
+        font-weight: bold;
+        margin-bottom: 6px;
+      }
+
+      .pot-row .street-lbl
+      {
+        color: #ccffcc;
+        font-size: 12px;
+        font-style: italic;
+        font-weight: normal;
+        margin-left: 10px;
+      }
+
+      .hand-name
+      {
+        color: #99cc99;
+        font-size: 12px;
+        font-style: italic;
+        margin: 2px 0;
+        min-height: 16px;
+      }
+
+      #winner-banner
+      {
+        display: none;
+        padding: 4px 18px;
+        background: #111111;
+        border: 2px solid #555;
+        font-size: 15px;
+        font-weight: bold;
+        font-style: italic;
+        margin: 6px auto;
+        width: fit-content;
+      }
+
+      .action-badge
+      {
+        display: inline-block;
+        padding: 1px 8px;
+        font-size: 12px;
+        font-style: italic;
+        border: 1px solid;
+        margin-left: 8px;
+        vertical-align: middle;
+      }
+
+      .badge-fold   { background: #ffcccc; color: #990000; border-color: #cc0000; }
+      .badge-call   { background: #cce0ff; color: #003399; border-color: #3366cc; }
+      .badge-check  { background: #ccffcc; color: #006600; border-color: #339933; }
+      .badge-raise  { background: #ffffcc; color: #665500; border-color: #ccaa00; }
+      .badge-all_in { background: #ffe0cc; color: #883300; border-color: #cc6600; }
+
+      #action-panel
+      {
+        background: #1a1a1a;
+        border-top: 3px solid #f5e642;
+        padding: 12px 16px;
+        display: none;
+      }
+
+      #action-panel.visible
+      {
+        display: block;
+      }
+
+      #action-panel .ap-label
+      {
+        color: #f5e642;
+        font-size: 13px;
+        font-style: italic;
+        margin-bottom: 8px;
+        text-align: center;
+      }
+
+      #action-buttons
+       {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+
+      .act-btn
+      {
+        font-family: inherit;
+        font-size: 14px;
+        padding: 8px 20px;
+        border: 2px solid;
+        cursor: pointer;
+        font-weight: bold;
+      }
+
+      .act-btn:disabled
+      {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+
+      #btn-fold   { background: #ffcccc; color: #990000; border-color: #cc0000; }
+      #btn-check  { background: #ccffcc; color: #006600; border-color: #339933; }
+      #btn-call   { background: #cce0ff; color: #003399; border-color: #3366cc; }
+      #btn-raise  { background: #ffffcc; color: #665500; border-color: #ccaa00; }
+      #btn-allin  { background: #ffe0cc; color: #883300; border-color: #cc6600; }
+
+      #raise-row
+       {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #raise-row label
+      {
+        color: #ccc;
+        font-size: 13px;
+      }
+
+      #raise-input
+      {
+        font-family: inherit;
+        font-size: 14px;
+        width: 90px;
+        padding: 4px 8px;
+        text-align: center;
+        border: 2px solid #ccaa00;
+        background: #fff;
+      }
+
+      #raise-row input[type=range]
+      {
+        width: 180px;
+        accent-color: #f5e642;
+      }
+
+      #stats-big
+      {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .big-stat
+      {
+        background: #fff;
+        border: 2px solid #aaa;
+        padding: 12px;
+        text-align: center;
+      }
+
+      .big-stat .big-label { font-size: 12px; color: #666; font-style: italic; }
+      .big-stat .big-val   { font-size: 32px; font-weight: bold; }
+      .big-stat .big-pct   { font-size: 12px; color: #888; }
+
+      #chart-box
+      {
+        background: #fff;
+        border: 2px solid #aaa;
+        padding: 12px 16px;
+      }
+
+      #chart-box h3
+      {
+        font-size: 14px;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 6px;
+        margin-bottom: 8px;
+      }
+
+      #chart
+      {
+        width: 100%;
+        height: 80px;
+        border: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      #chart-footer
+      {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: #999;
+        margin-top: 4px;
+      }
+
+      #log-box
+      {
+        background: #fff;
+        border: 2px solid #aaa;
+        padding: 12px 16px;
+      }
+
+      #log-box h3
+      {
+        font-size: 14px;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 6px;
+        margin-bottom: 10px;
+      }
+
+      #log-list
+      {
+        height: 420px;
+        overflow-y: auto;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+      }
+
+      .log-entry
+      {
+        display: flex;
+        gap: 10px;
+        padding: 2px 0;
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      .log-num    { color: #bbb; min-width: 26px; text-align: right; font-style: italic; }
+      .log-street { color: #333; font-weight: bold; font-style: italic; }
+      .log-fold   { color: #990000; }
+      .log-call   { color: #003399; }
+      .log-check  { color: #006600; }
+      .log-raise  { color: #665500; }
+      .log-all_in { color: #883300; }
+      .log-win    { color: #006600; font-weight: bold; }
+      .log-lose   { color: #990000; font-weight: bold; }
+      .log-tie    { color: #444;    font-weight: bold; }
+      .log-info   { color: #666; }
+    </style>
+  </head>
+  <body>
+
+    <div id="header">
+      <div class="title">
+        <img src="/flag.png" style="height:32px;vertical-align:middle;margin-right:10px;border:1px solid #555;">
+        Texas Hold'em
+      </div>
+      <div id="header-right">
+        <button class="tab-btn active" onclick="switchTab('game', this)">Game</button>
+        <button class="tab-btn" onclick="switchTab('stats', this)">Stats</button>
+        <button class="tab-btn" onclick="switchTab('log', this)">Log</button>
+      </div>
+    </div>
+
+    <div id="content">
+
+      <div class="tab-page active" id="tab-game">
+        <div id="controls">
+          <button class="ctrl-btn" id="new-btn" onclick="newHand()">New Hand</button>
+        </div>
+        <div id="table">
+          <div class="table-section">
+            <div class="player-info">
+              AI Agent &mdash; Chips: <b id="ai-chips">1000</b>
+              <span id="ai-badge"></span>
+            </div>
+            <div class="hand-name" id="ai-hand-name"></div>
+            <div class="cards-row" id="ai-cards">
+              <div class="card hidden">?</div>
+              <div class="card hidden">?</div>
+            </div>
+          </div>
+          <div class="table-section community">
+            <div class="pot-row">
+              Pot: <span id="pot-val">0</span>
+              <span class="street-lbl" id="street-lbl">Pre-Flop</span>
+            </div>
+            <div class="cards-row" id="comm-cards">
+              <div class="card empty"></div>
+              <div class="card empty"></div>
+              <div class="card empty"></div>
+              <div class="card empty"></div>
+              <div class="card empty"></div>
+            </div>
+            <div id="winner-banner"></div>
+          </div>
+          <div class="table-section">
+            <div class="cards-row" id="human-cards">
+              <div class="card hidden">?</div>
+              <div class="card hidden">?</div>
+            </div>
+            <div class="hand-name" id="human-hand-name"></div>
+            <div class="player-info">
+              You &mdash; Chips: <b id="human-chips">1000</b>
+              <span id="human-badge"></span>
+            </div>
+          </div>
+          <div id="action-panel">
+            <div class="ap-label" id="ap-label">Your turn — choose an action</div>
+            <div id="action-buttons">
+              <button class="act-btn" id="btn-fold"  onclick="sendAction('fold')">Fold</button>
+              <button class="act-btn" id="btn-check" onclick="sendAction('check')">Check</button>
+              <button class="act-btn" id="btn-call"  onclick="sendAction('call')">Call <span id="call-amt"></span></button>
+              <button class="act-btn" id="btn-raise" onclick="sendAction('raise')">Raise</button>
+              <button class="act-btn" id="btn-allin" onclick="sendAction('all_in')">All In</button>
+            </div>
+            <div id="raise-row">
+              <label>Raise to:</label>
+              <input type="number" id="raise-input" value="0" min="0"/>
+              <input type="range" id="raise-slider" min="0" max="1000" value="0"
+                oninput="document.getElementById('raise-input').value=this.value"/>
+            </div>
+          </div>
+        </div>
+        <img src="/cowboy_left.png"  id="hat-left"  style="position:fixed;top:50%;transform:translateY(-50%);left:0;height:330px;max-width:calc(50vw - 430px);object-fit:contain;z-index:10;pointer-events:none;">
+        <img src="/cowboy_right.png" id="hat-right" style="position:fixed;top:50%;transform:translateY(-50%);right:0;height:330px;max-width:calc(50vw - 430px);object-fit:contain;z-index:10;pointer-events:none;">
+      </div>
+
+      <div class="tab-page" id="tab-stats">
+        <div id="stats-big">
+          <div class="big-stat">
+            <div class="big-label">You Win</div>
+            <div class="big-val" id="big-human-wins" style="color:#006600">0</div>
+            <div class="big-pct" id="big-human-pct"></div>
+          </div>
+          <div class="big-stat">
+            <div class="big-label">AI Wins</div>
+            <div class="big-val" id="big-ai-wins" style="color:#990000">0</div>
+            <div class="big-pct" id="big-ai-pct"></div>
+          </div>
+          <div class="big-stat">
+            <div class="big-label">Ties</div>
+            <div class="big-val" id="big-ties" style="color:#444">0</div>
+            <div class="big-pct" id="big-ties-pct"></div>
+          </div>
+        </div>
+        <div id="chart-box">
+          <h3>Your Win Rate Over Time</h3>
+          <canvas id="chart"></canvas>
+          <div id="chart-footer">
+            <span>0%</span>
+            <span id="chart-rate">—</span>
+            <span>100%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-page" id="tab-log">
+        <div id="log-box">
+          <h3>Action Log</h3>
+          <div id="log-list">
+            <div class="log-entry">
+              <span class="log-num"></span>
+              <span class="log-info">No actions yet.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <script>
+      const st = {
+        humanHole: [], aiHole: [], community: [],
+        humanChips: 1000, aiChips: 1000, pot: 0,
+        street: "preflop",
+        humanAction: null, aiAction: null,
+        winner: null, showdown: false, handOver: false,
+        humanHandName: null, aiHandName: null,
+        pendingHuman: false, toCall: 0, canCheck: true,
+        minRaise: 20, maxRaise: 1000,
+      };
+
+      const winHistory = [];
+      const logEntries = [];
+
+      function cardToImg(card)
+      {
+        if (!card) return null;
+        const rank = card.slice(0, -1);
+        const suit = card.slice(-1).toUpperCase();
+        const r = rank === "T" ? "10" : rank.toUpperCase();
+        return `/cards/${r}${suit}.png`;
+      }
+
+      function makeCardEl(card, hidden)
+      {
+        const div = document.createElement("div");
+        div.className = "card";
+        if (hidden)
+        {
+          div.classList.add("hidden");
+          div.textContent = "?";
+        }
+
+        else if (!card)
+        {
+          div.classList.add("empty");
+        }
+
+        else
+        {
+          const img = document.createElement("img");
+          img.src = cardToImg(card);
+          img.alt = card;
+          img.onerror = () => { div.textContent = card; };
+          div.appendChild(img);
+        }
+        return div;
+      }
+
+      function renderCards(id, cards, hidden, count)
+      {
+        const el = document.getElementById(id);
+        el.innerHTML = "";
+        for (let i = 0; i < count; i++)
+        {
+          el.appendChild(makeCardEl(cards[i] || null, hidden));
+        }
+      }
+
+      function badgeHTML(action)
+      {
+        if (!action) return "";
+        const map = { fold:"Fold", call:"Call", check:"Check", raise:"Raise", all_in:"All In" };
+        return `<span class="action-badge badge-${action}">${map[action] || action}</span>`;
+      }
+
+      function streetStr(s)
+      {
+        return { preflop:"Pre-Flop", flop:"Flop", turn:"Turn", river:"River", showdown:"Showdown" }[s] || s;
+      }
+
+      function render()
+      {
+        renderCards("human-cards", st.humanHole, false, 2);
+
+        const revealAI = st.showdown || st.handOver;
+        renderCards("ai-cards", revealAI && st.aiHole ? st.aiHole : [], !revealAI || !st.aiHole, 2);
+
+        renderCards("comm-cards", st.community, false, 5);
+
+        document.getElementById("human-chips").textContent = st.humanChips;
+        document.getElementById("ai-chips").textContent    = st.aiChips;
+        document.getElementById("pot-val").textContent     = st.pot;
+        document.getElementById("street-lbl").textContent  = "  " + streetStr(st.street);
+
+        document.getElementById("human-badge").innerHTML = badgeHTML(st.humanAction);
+        document.getElementById("ai-badge").innerHTML    = badgeHTML(st.aiAction);
+
+        document.getElementById("human-hand-name").textContent = st.humanHandName || "";
+        document.getElementById("ai-hand-name").textContent    = st.aiHandName    || "";
+
+        const banner = document.getElementById("winner-banner");
+        if (st.handOver && st.winner)
+        {
+          const txt   = st.winner === "human" ? "You Win!" : st.winner === "ai" ? "AI Wins!" : "Tie!";
+          const color = st.winner === "human" ? "#006600"  : st.winner === "ai" ? "#990000"  : "#444";
+          banner.textContent   = txt;
+          banner.style.color   = color;
+          banner.style.display = "block";
+        }
+
+        else
+        {
+          banner.style.display = "none";
+        }
+
+        const panel = document.getElementById("action-panel");
+        if (st.pendingHuman && !st.handOver)
+        {
+          panel.classList.add("visible");
+          document.getElementById("btn-check").disabled = !st.canCheck;
+          document.getElementById("btn-call").disabled  = st.canCheck;
+          document.getElementById("call-amt").textContent = st.toCall > 0 ? `(${st.toCall})` : "";
+          const slider = document.getElementById("raise-slider");
+          const rinput = document.getElementById("raise-input");
+          slider.min = st.minRaise;
+          slider.max = st.maxRaise;
+          slider.value = st.minRaise;
+          rinput.min = st.minRaise;
+          rinput.max = st.maxRaise;
+          rinput.value = st.minRaise;
+          rinput.oninput = () => { slider.value = rinput.value; };
+        }
+
+        else
+        {
+          panel.classList.remove("visible");
+        }
+      }
+
+      function drawChart()
+      {
+        const canvas = document.getElementById("chart");
+        const ctx = canvas.getContext("2d");
+        const W = canvas.offsetWidth || 600;
+        const H = 80;
+        canvas.width  = W;
+        canvas.height = H;
+        ctx.clearRect(0, 0, W, H);
+        const data = winHistory.slice(-100);
+        if (data.length < 2) return;
+        ctx.beginPath();
+        ctx.strokeStyle = "#1a4a1c";
+        ctx.lineWidth   = 2;
+
+        data.forEach((v, i) => {
+          const x = (i / (data.length - 1)) * (W - 4) + 2;
+          const y = H - (v / 100) * (H - 8) - 4;
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        });
+
+        ctx.stroke();
+      }
+
+      function addLog(msg, cls)
+      {
+        logEntries.push({ msg, cls });
+        const list = document.getElementById("log-list");
+        if (logEntries.length === 1) list.innerHTML = "";
+        const e = document.createElement("div");
+        e.className = "log-entry";
+        e.innerHTML = `<span class="log-num">${logEntries.length}</span><span class="log-${cls}">${msg}</span>`;
+        list.appendChild(e);
+        list.scrollTop = list.scrollHeight;
+      }
+
+      function applyPayload(data)
+      {
+        if (data.community)                    st.community      = data.community;
+        if (data.human_chips !== undefined)    st.humanChips     = data.human_chips;
+        if (data.ai_chips    !== undefined)    st.aiChips        = data.ai_chips;
+        if (data.pot         !== undefined)    st.pot            = data.pot;
+        if (data.street)                       st.street         = data.street;
+        if (data.winner      !== undefined)    st.winner         = data.winner;
+        if (data.showdown    !== undefined)    st.showdown       = data.showdown;
+        if (data.hand_over   !== undefined)    st.handOver       = data.hand_over;
+        if (data.human_hand_name !== undefined) st.humanHandName = data.human_hand_name;
+        if (data.ai_hand_name    !== undefined) st.aiHandName    = data.ai_hand_name;
+        if (data.pending_human   !== undefined) st.pendingHuman  = data.pending_human;
+        if (data.to_call         !== undefined) st.toCall        = data.to_call;
+        if (data.can_check       !== undefined) st.canCheck      = data.can_check;
+        if (data.min_raise       !== undefined) st.minRaise      = data.min_raise;
+        if (data.max_raise       !== undefined) st.maxRaise      = data.max_raise;
+        if (data.human_hole)                   st.humanHole      = data.human_hole;
+        if (data.ai_hole)                      st.aiHole         = data.ai_hole;
+
+        if (data.actor === "human" && data.action) st.humanAction = data.action;
+        if (data.actor === "ai"    && data.action) st.aiAction    = data.action;
+
+        if (data.actor && data.action)
+        {
+          const who = data.actor === "human" ? "You" : "AI";
+          const amt = data.amount > 0 ? ` ${data.amount}` : "";
+          addLog(`${who}: ${data.action}${amt}`, data.action);
+        }
+
+        if (data.hand_over && data.winner)
+        {
+          if (data.winner === "human")       addLog("You win the hand!", "win");
+          else if (data.winner === "ai")     addLog("AI wins the hand!", "lose");
+          else                               addLog("Tie!", "tie");
+          fetchStats();
+        }
+      }
+
+      async function fetchStats()
+      {
+        const res  = await fetch("/stats");
+        const data = await res.json();
+        const wr   = data.hands ? data.win_rate + "%" : "—";
+
+        document.getElementById("big-human-wins").textContent = data.human_wins;
+        document.getElementById("big-ai-wins").textContent    = data.ai_wins;
+        document.getElementById("big-ties").textContent       = data.ties;
+
+        if (data.hands)
+        {
+          document.getElementById("big-human-pct").textContent = (data.human_wins / data.hands * 100).toFixed(1) + "%";
+          document.getElementById("big-ai-pct").textContent    = (data.ai_wins    / data.hands * 100).toFixed(1) + "%";
+          document.getElementById("big-ties-pct").textContent  = (data.ties       / data.hands * 100).toFixed(1) + "%";
+        }
+
+        document.getElementById("chart-rate").textContent = wr;
+        winHistory.length = 0;
+        (data.win_history || []).forEach(v => winHistory.push(v));
+        drawChart();
+      }
+
+      async function newHand()
+      {
+        const res  = await fetch("/new_hand", { method: "POST" });
+        const data = await res.json();
+
+        st.humanHole     = data.human_hole;
+        st.aiHole        = [];
+        st.community     = [];
+        st.humanChips    = data.human_chips;
+        st.aiChips       = data.ai_chips;
+        st.pot           = data.pot;
+        st.street        = data.street;
+        st.humanAction   = null;
+        st.aiAction      = null;
+        st.winner        = null;
+        st.showdown      = false;
+        st.handOver      = false;
+        st.humanHandName = null;
+        st.aiHandName    = null;
+        st.pendingHuman  = false;
+        st.toCall        = data.to_call;
+        st.canCheck      = data.can_check;
+        st.minRaise      = data.min_raise;
+        st.maxRaise      = data.max_raise;
+
+        addLog("── New Hand ──", "street");
+        render();
+        await advanceToHuman();
+      }
+
+      async function advanceToHuman()
+      {
+        while (!st.handOver && !st.pendingHuman)
+        {
+          const res = await fetch("/step", { method: "POST" });
+          if (!res.ok) break;
+          const data = await res.json();
+          if (data.error) break;
+          applyPayload(data);
+          render();
+          if (data.actor === "ai" && data.action)
+          {
+            await new Promise(r => setTimeout(r, 600));
+          }
+        }
+      }
+
+      async function sendAction(actionStr)
+      {
+        let amount = 0;
+        if (actionStr === "raise")
+        {
+          amount = parseInt(document.getElementById("raise-input").value) || st.minRaise;
+        }
+        st.pendingHuman = false;
+        render();
+
+        const res  = await fetch("/action", {method: "POST",headers: { "Content-Type": "application/json" },body: JSON.stringify({ action: actionStr, amount })});
+        const data = await res.json();
+        applyPayload(data);
+        render();
+
+        if (!st.handOver && !st.pendingHuman)
+        {
+          await advanceToHuman();
+        }
+      }
+
+      function switchTab(tab, btn) {
+        document.querySelectorAll(".tab-page").forEach(p => p.classList.remove("active"));
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        document.getElementById("tab-" + tab).classList.add("active");
+        btn.classList.add("active");
+        if (tab === "stats") drawChart();
+      }
+
+      newHand();
+    </script>
+  </body>
+</html>

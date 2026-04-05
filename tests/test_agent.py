@@ -19,6 +19,11 @@ def agent_policy_factory(agent):
         return agent.select_action(state)
     return policy
 
+def load_latest_model(model, path="models/poker_model_latest.pt"):
+    model.load_state_dict(torch.load(path, map_location=torch.device("cpu")))
+    model.eval()
+    return model
+
 # -------------------------
 # Tests
 # -------------------------
@@ -154,10 +159,9 @@ def test_saved_model():
     print("\n--- test_saved_model ---")
 
     model = PolicyNet()
-    agent = PokerAgent(model, encode_state)
 
     try:
-        agent.load("models/poker_model_latest.pt")
+        load_latest_model(model, "models/poker_model_latest.pt")
     except Exception as e:
         print("Could not load saved model:", e)
         return
@@ -169,7 +173,7 @@ def test_saved_model():
     state_vec = encode_state(state)
     state_tensor = torch.tensor(state_vec, dtype=torch.float32).unsqueeze(0)
 
-    probs = agent.model(state_tensor).squeeze(0)
+    probs = model(state_tensor).squeeze(0)
 
     print("Loaded model probs:", probs)
     print("Sum:", probs.sum().item())
