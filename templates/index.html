@@ -328,7 +328,7 @@
       #stats-big
       {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 12px;
         margin-bottom: 12px;
       }
@@ -515,6 +515,11 @@
             <div class="big-label">Ties</div>
             <div class="big-val" id="big-ties" style="color:#444">0</div>
             <div class="big-pct" id="big-ties-pct"></div>
+          </div>
+          <div class="big-stat">
+            <div class="big-label">Chip Differential</div>
+            <div class="big-val" id="big-chip-diff" style="color:#444">0</div>
+            <div class="big-pct" id="big-chip-diff-lbl"></div>
           </div>
         </div>
         <div id="chart-box">
@@ -753,6 +758,13 @@
         const res  = await fetch("/stats");
         const data = await res.json();
         const wr   = data.hands ? data.win_rate + "%" : "—";
+        console.log("stats:", data);
+
+        const profit     = data.ai_chip_profit;
+        const profitColor = profit > 0 ? "#990000" : profit < 0 ? "#006600" : "#444";
+        document.getElementById("big-chip-diff").textContent     = (profit > 0 ? "+" : "") + profit;
+        document.getElementById("big-chip-diff").style.color     = profitColor;
+        document.getElementById("big-chip-diff-lbl").textContent = "AI cumulative chips";
 
         document.getElementById("big-human-wins").textContent = data.human_wins;
         document.getElementById("big-ai-wins").textContent    = data.ai_wins;
@@ -839,12 +851,17 @@
         }
       }
 
-      function switchTab(tab, btn) {
+      function switchTab(tab, btn)
+      {
         document.querySelectorAll(".tab-page").forEach(p => p.classList.remove("active"));
         document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
         document.getElementById("tab-" + tab).classList.add("active");
         btn.classList.add("active");
-        if (tab === "stats") drawChart();
+        if (tab === "stats")
+        {
+          fetchStats();
+          drawChart();
+        }
       }
 
       newHand();

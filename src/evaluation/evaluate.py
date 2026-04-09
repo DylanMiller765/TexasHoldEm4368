@@ -1,14 +1,15 @@
 class Evaluator:
 
     def __init__(self):
-        self.hands       = 0
-        self.human_wins  = 0
-        self.ai_wins     = 0
-        self.ties        = 0
+        self.hands = 0
+        self.human_wins = 0
+        self.ai_wins = 0
+        self.ties = 0
+        self.ai_chip_profit = 0
         self.chip_diff_history: list[int] = []  # human chips - 1000 after each hand
-        self.win_history: list[float]     = []  # human win rate % after each hand
+        self.win_history: list[float] = []  # human win rate % after each hand
 
-    def record(self, winner: str, human_chips: int, ai_chips: int):
+    def record(self, winner: str, human_chips: int, ai_chips: int, ai_start_chips: int = 1000):
         self.hands += 1
 
         if winner == "human":
@@ -18,6 +19,7 @@ class Evaluator:
         else:
             self.ties += 1
 
+        self.ai_chip_profit += ai_chips - ai_start_chips
         self.chip_diff_history.append(human_chips - ai_chips)
         self.win_history.append(self.win_rate)
 
@@ -42,9 +44,9 @@ class Evaluator:
             "ties":             self.ties,
             "win_rate":         self.win_rate,
             "chip_differential": self.chip_differential,
+            "ai_chip_profit": self.ai_chip_profit,
             "win_history":      self.win_history[-100:],  # last 100 for chart
         }
 
     def reset(self):
-        """Reset all stats."""
         self.__init__()

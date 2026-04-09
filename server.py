@@ -61,38 +61,46 @@ def hand_name(hole_cards, community_cards) -> str:
         return ""
 
 def build_payload(g, actor, action, amount, hand_over=False, winner=None, showdown=False, pending_human=False):
-    state = g.get_state_for_player(HUMAN_ID)
-    to_call = max(0, state.current_bet - state.player_round_bet)
-    can_check = to_call == 0
+    try:
+        state     = g.get_state_for_player(HUMAN_ID)
+        to_call   = max(0, state.current_bet - state.player_round_bet)
+        can_check = to_call == 0
+        min_raise = state.min_raise
+        max_raise = state.max_raise
+    except Exception:
+        to_call   = 0
+        can_check = True
+        min_raise = 20
+        max_raise = 1000
 
-    ai_hn = hand_name(g.players[AI_ID].hole_cards,    g.community_cards) if len(g.community_cards) >= 3 else None
+    ai_hn    = hand_name(g.players[AI_ID].hole_cards,    g.community_cards) if len(g.community_cards) >= 3 else None
     human_hn = hand_name(g.players[HUMAN_ID].hole_cards, g.community_cards) if len(g.community_cards) >= 3 else None
 
-    return \
-    {
-        "actor":             actor,
-        "action":            action.name.lower() if action else None,
-        "amount":            amount,
-        "human_chips":       g.players[HUMAN_ID].chips,
-        "ai_chips":          g.players[AI_ID].chips,
-        "pot":               g.pot.total,
-        "street":            g.street.value,
-        "community":         [card_to_str(c) for c in g.community_cards],
-        "hand_over":         hand_over,
-        "winner":            winner,
-        "showdown":          showdown,
-        "ai_hand_name":      ai_hn,
-        "human_hand_name":   human_hn,
-        "human_hole":        [card_to_str(c) for c in g.players[HUMAN_ID].hole_cards],
-        "ai_hole":           [card_to_str(c) for c in g.players[AI_ID].hole_cards] if (showdown or hand_over) else None,
-        "pending_human":     pending_human,
-        "to_call":           to_call,
-        "can_check":         can_check,
-        "min_raise":         state.min_raise,
-        "max_raise":         state.max_raise,
+    return{
+        "actor":           actor,
+        "action":          action.name.lower() if action else None,
+        "amount":          amount,
+        "human_chips":     g.players[HUMAN_ID].chips,
+        "ai_chips":        g.players[AI_ID].chips,
+        "pot":             g.pot.total,
+        "street":          g.street.value,
+        "community":       [card_to_str(c) for c in g.community_cards],
+        "hand_over":       hand_over,
+        "winner":          winner,
+        "showdown":        showdown,
+        "ai_hand_name":    ai_hn,
+        "human_hand_name": human_hn,
+        "human_hole":      [card_to_str(c) for c in g.players[HUMAN_ID].hole_cards],
+        "ai_hole":         [card_to_str(c) for c in g.players[AI_ID].hole_cards] if (showdown or hand_over) else None,
+        "pending_human":   pending_human,
+        "to_call":         to_call,
+        "can_check": can_check,
+        "min_raise": min_raise,
+        "max_raise": max_raise,
     }
 
 def hand_iterator(g):
+    ai_start_chips = g.players[AI_ID].chips
     streets = \
     [
         (Street.PREFLOP, 0),
@@ -182,7 +190,8 @@ def hand_iterator(g):
     session["ai_chips"] = g.players[AI_ID].chips
     session["hand_over"] = True
 
-    _evaluator.record(winner_str, g.players[HUMAN_ID].chips, g.players[AI_ID].chips)
+    _evaluator.record(winner_str, g.players[HUMAN_ID].chips, g.players[AI_ID].chips, ai_start_chips)
+    print(f"ai_start_chips: {ai_start_chips}, ai_end_chips: {g.players[AI_ID].chips}, profit: {g.players[AI_ID].chips - ai_start_chips}")
 
     yield build_payload(g, None, None, 0,hand_over=True, winner=winner_str,showdown=showdown)
 
@@ -213,9 +222,11 @@ def cowboy_right():
 
 @app.route("/new_hand", methods=["POST"])
 def new_hand():
+    human_chips = session["human_chips"] if session["human_chips"] >= 20 else 1000
+    ai_chips = session["ai_chips"] if session["ai_chips"] >= 20 else 1000
     g = Game\
     (
-        stacks=(session["human_chips"], session["ai_chips"]),
+        stacks=(human_chips, ai_chips),
         small_blind=10,
         big_blind=20,
     )
@@ -255,16 +266,18 @@ def new_hand():
 @app.route("/step", methods=["POST"])
 def step():
     it = session.get("iterator")
-    if it is None:
-        return jsonify({"error": "No active hand."}), 400
-    if session.get("pending_human"):
-        return jsonify({"error": "Waiting for human action."}), 400
     try:
         payload = next(it)
         session["last_payload"] = payload
+        while not payload.get("hand_over") and not payload.get("pending_human"):
+            try:
+                payload = next(it)
+                session["last_payload"] = payload
+            except StopIteration:
+                break
         return jsonify(payload)
     except StopIteration:
-        return jsonify({"error": "Hand already finished."}), 400
+        return jsonify({"error": "Hand finished unexpectedly."}), 400
 
 @app.route("/action", methods=["POST"])
 def player_action():
@@ -294,6 +307,9 @@ def player_action():
     try:
         payload = next(it)
         session["last_payload"] = payload
+        while not payload.get("hand_over") and not payload.get("pending_human"):
+            payload = next(it)
+            session["last_payload"] = payload
         return jsonify(payload)
     except StopIteration:
         return jsonify({"error": "Hand finished unexpectedly."}), 400
