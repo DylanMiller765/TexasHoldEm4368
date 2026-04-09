@@ -13,7 +13,7 @@ MODEL_DIR = "models"
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 
-def train(num_episodes=3000):
+def train(num_episodes=7000):
 
     model = PolicyNet()
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
@@ -38,9 +38,9 @@ def train(num_episodes=3000):
         
         result = game.play_hand(action)
 
-        if (len(result["community_cards"]) == 0 and random.random() <= 0.3):
-            episode -= 1
-            continue
+        # if (len(result["community_cards"]) == 0 and random.random() <= 0.3):
+        #     episode -= 1
+        #     continue
 
         final_state = game.get_state_for_player(0)
         final_stack = game.players[0].chips
@@ -52,8 +52,11 @@ def train(num_episodes=3000):
         reward = final_stack - initial_stack
         reward /= (game.players[0].total_bet_this_hand + game.players[1].total_bet_this_hand + 1e-8)
         if game.players[0].is_folded:
-            reward -= 1.55
-        reward -= 0.001*game.players[0].total_bet_this_hand
+            reward -= 1.55 + game.players[0].total_bet_this_hand*0.001 + (1/(len(result["community_cards"])*10 + 1))
+        else:
+            reward += 0.01
+        reward -= 0.0001*game.players[0].total_bet_this_hand
+        reward -= 0.1/game.players[0].total_bet_this_hand
         reward -= 0.01*(1/(len(result["community_cards"])*10 + 1))
         # print(game.players[0].chips)
 
