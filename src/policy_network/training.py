@@ -13,7 +13,7 @@ MODEL_DIR = "models"
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 
-def train(num_episodes=10000):
+def train(num_episodes=7000):
 
     model = PolicyNet()
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
@@ -26,33 +26,41 @@ def train(num_episodes=10000):
     rewards = []
 
     for episode in range(num_episodes):
-
         game = Game()
         agent.reset()
 
         def get_action(state):
             return agent.select_action(state)
 
-        initial_stack = game.get_state_for_player(0).player_chips
+        initial_stack = game.players[0].chips
 
         action = get_action
         
         result = game.play_hand(action)
 
+        # if (len(result["community_cards"]) == 0 and random.random() <= 0.3):
+        #     episode -= 1
+        #     continue
+
         final_state = game.get_state_for_player(0)
-        final_stack = final_state.player_chips
-        pot = final_state.pot_total
+        final_stack = game.players[0].chips
+        # if game.players[0].is_folded:
+        #     print(initial_stack, final_stack)
 
         # reward = result["payouts"].get(0, 0)
         # print("raw: ", final_stack - initial_stack)
         reward = final_stack - initial_stack
-        reward /= (final_state.current_bet + final_state.opponent_round_bet + 1e-8)
-        if abs(reward) > 100000:
-            reward = 0.0
-        if reward == 0:
-            reward = -1
-        # print(f"{reward:.3f}")
+        reward /= (game.players[0].total_bet_this_hand + game.players[1].total_bet_this_hand + 1e-8)
+        if game.players[0].is_folded:
+            reward -= 1.55 + game.players[0].total_bet_this_hand*0.001 + (1/(len(result["community_cards"])*10 + 1))
+        else:
+            reward += 0.01
+        reward -= 0.0001*game.players[0].total_bet_this_hand
+        reward -= 0.1/game.players[0].total_bet_this_hand
+        reward -= 0.01*(1/(len(result["community_cards"])*10 + 1))
+        # print(game.players[0].chips)
 
+        # print(reward)
         loss = agent.compute_loss(reward)
 
         optimizer.zero_grad()
@@ -66,22 +74,22 @@ def train(num_episodes=10000):
             print(agent.model(torch.tensor(agent.encoder(game.get_state_for_player(0)), dtype=torch.float32)))
             model.eval()
 
-            total_profit = 0
-            hands = 10000
+            # total_profit = 0
+            # hands = 10000
 
-            for _ in range(hands):
-                initial_stack = game.get_state_for_player(0).player_chips
+            # for _ in range(hands):
+            #     initial_stack = game.get_state_for_player(0).player_chips
 
-                # run one full hand
-                game.play_hand(get_action)
-                result = game.get_state_for_player(0)
+            #     # run one full hand
+            #     game.play_hand(get_action)
+            #     result = game.get_state_for_player(0)
 
-                final_stack = result.player_chips
+            #     final_stack = result.player_chips
 
-                total_profit += (final_stack - initial_stack)
+            #     total_profit += (final_stack - initial_stack)
 
-            print("Total Profit:", total_profit)
-            print("Avg Profit per Hand:", total_profit / hands)
+            # print("Total Profit:", total_profit)
+            # print("Avg Profit per Hand:", total_profit / hands)
 
         if episode % 100 == 0:
             print(f"Episode {episode}, Reward: {reward:.4f}")

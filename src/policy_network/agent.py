@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from torch.distributions import Categorical
 from ..game_engine.game import Action
+import random
 
 
 class PokerAgent:
@@ -29,7 +30,7 @@ class PokerAgent:
         log_prob = dist.log_prob(action_idx)
 
         self.log_probs.append(log_prob)
-
+        print(probs)
         if action_idx.item() == 0:
             return Action.FOLD, 0
 
@@ -41,7 +42,17 @@ class PokerAgent:
                 return Action.CALL, 0
 
         else:
-            return Action.RAISE, state.min_raise
+            percs = probs.tolist()
+            rating = percs[2]
+            ag_raise = state.min_raise
+            while True:
+                chance = random.random()
+                if chance <= rating:
+                    ag_raise += int((state.min_raise)*chance)
+                else:
+                    break
+
+            return Action.RAISE, ag_raise
 
     def compute_loss(self, reward):
         self.rewards.append(reward)
@@ -49,9 +60,9 @@ class PokerAgent:
         std = np.std(self.rewards)
         self.baseline = 0.99 * self.baseline + 0.1 * reward
         loss = 0
-        advantage = (reward - self.baseline)
+        advantage = (reward - self.baseline - mean)/(std + 1e-8)
         for log_prob in self.log_probs:
-            loss += -log_prob * advantage - 0.01 * self.entropy
+            loss += -log_prob * advantage - 0.03 * self.entropy
         return loss
 
     def save(self, path, optimizer=None, episode=None):
